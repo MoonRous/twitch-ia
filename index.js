@@ -1,13 +1,12 @@
 const http = require('http');
 const https = require('https');
-const url = require('url');
 
 const PORT = process.env.PORT || 10000;
 
 http.createServer((req, res) => {
-  const q = url.parse(req.url, true).query;
-  const user = q.user || 'Viewer';
-  const pregunta = q.q || '';
+  const urlObj = new URL(req.url, 'http://localhost');
+  const user = urlObj.searchParams.get('user') || 'Viewer';
+  const pregunta = urlObj.searchParams.get('q') || '';
 
   if (!pregunta) {
     res.writeHead(200);
@@ -21,6 +20,8 @@ http.createServer((req, res) => {
     system: 'Eres TwitchGPT. Responde en maximo 2 oraciones con humor gamer en español.',
     messages: [{ role: 'user', content: user + ' pregunta: ' + pregunta }]
   });
+
+  let respondido = false;
 
   const req2 = https.request({
     hostname: 'api.anthropic.com',
@@ -36,6 +37,8 @@ http.createServer((req, res) => {
     let data = '';
     r.on('data', c => data += c);
     r.on('end', () => {
+      if (respondido) return;
+      respondido = true;
       try {
         const json = JSON.parse(data);
         res.writeHead(200);
@@ -48,6 +51,8 @@ http.createServer((req, res) => {
   });
 
   req2.on('error', e => {
+    if (respondido) return;
+    respondido = true;
     res.writeHead(200);
     res.end('Error: ' + e.message);
   });
