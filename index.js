@@ -2,7 +2,7 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 
-const PORT = parseInt(process.env.PORT || '3000');
+const PORT = process.env.PORT || 10000;
 
 http.createServer((req, res) => {
   const q = url.parse(req.url, true).query;
