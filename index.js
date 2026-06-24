@@ -2,51 +2,57 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 
-const server = http.createServer(async (req, res) => {
-  const params = url.parse(req.url, true).query;
-  const user = params.user || 'Viewer';
-  const q = params.q || '';
+http.createServer((req, res) => {
+  const q = url.parse(req.url, true).query;
+  const user = q.user || 'Viewer';
+  const pregunta = q.q || '';
 
-  if (!q) {
-    res.end('Escribe !ia [tu pregunta]');
+  if (!pregunta) {
+    res.writeHead(200);
+    res.end('Escribe !ia [pregunta]');
     return;
   }
 
   const body = JSON.stringify({
     model: 'claude-sonnet-4-6',
     max_tokens: 150,
-    system: 'Eres TwitchGPT. Responde en maximo 2 oraciones cortas, con humor gamer y en español.',
-    messages: [{ role: 'user', content: user + ' pregunta: ' + q }]
+    system: 'Eres TwitchGPT. Responde en maximo 2 oraciones con humor gamer en español.',
+    messages: [{ role: 'user', content: user + ' pregunta: ' + pregunta }]
   });
 
-  const options = {
+  const req2 = https.request({
     hostname: 'api.anthropic.com',
     path: '/v1/messages',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
       'x-api-key': process.env.ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01'
     }
-  };
-
-  const apiReq = https.request(options, (apiRes) => {
+  }, (r) => {
     let data = '';
-    apiRes.on('data', chunk => data += chunk);
-    apiRes.on('end', () => {
+    r.on('data', c => data += c);
+    r.on('end', () => {
       try {
         const json = JSON.parse(data);
-        const texto = json.content[0].text;
-        res.end('🤖 ' + texto);
+        res.writeHead(200);
+        res.end('🤖 ' + json.content[0].text);
       } catch(e) {
+        res.writeHead(200);
         res.end('Error: ' + data);
       }
     });
   });
 
-  apiReq.on('error', e => res.end('Error: ' + e.message));
-  apiReq.write(body);
-  apiReq.end();
-});
+  req2.on('error', e => {
+    res.writeHead(200);
+    res.end('Error: ' + e.message);
+  });
 
-server.listen(process.env.PORT || 3000);
+  req2.write(body);
+  req2.end();
+
+}).listen(process.env.PORT || 3000, () => {
+  console.log('Servidor corriendo!');
+});
