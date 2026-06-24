@@ -2,6 +2,8 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 
+const PORT = parseInt(process.env.PORT || '3000');
+
 http.createServer((req, res) => {
   const q = url.parse(req.url, true).query;
   const user = q.user || 'Viewer';
@@ -53,6 +55,6 @@ http.createServer((req, res) => {
   req2.write(body);
   req2.end();
 
-}).listen(8080, () => {
-  console.log('Servidor corriendo en 8080!');
+}).listen(PORT, '0.0.0.0', () => {
+  console.log('Servidor corriendo en puerto ' + PORT);
 });
